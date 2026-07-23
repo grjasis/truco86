@@ -1,0 +1,7 @@
+build/
+src/test/build/
+*.o
+*.nes
+!web/truco86.nes
+.DS_Store
+__pycache__/

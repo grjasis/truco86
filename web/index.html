@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Truco86</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root { color-scheme: dark; }
+  html, body {
+    margin: 0;
+    min-height: 100%;
+    background: #111;
+    color: #eee;
+    font-family: -apple-system, system-ui, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  h1 {
+    font-size: 1.1rem;
+    letter-spacing: 0.15em;
+    margin: 1rem 0 0.25rem;
+    color: #9f9;
+  }
+  #game {
+    width: min(90vw, 768px);
+    aspect-ratio: 256 / 240;
+    background: #000;
+  }
+  #controls {
+    max-width: 700px;
+    margin: 1.5rem 1rem 2rem;
+    font-size: 0.85rem;
+    color: #aaa;
+    line-height: 1.5;
+  }
+  #controls b { color: #ddd; }
+  footer {
+    margin: 0 0 2rem;
+    font-size: 0.75rem;
+    color: #666;
+  }
+</style>
+</head>
+<body>
+  <h1>TRUCO 86</h1>
+  <div id="game"></div>
+
+  <div id="controls">
+    <p><b>Controles:</b> el emulador trae su propia pantalla de "play" (los navegadores no
+       dejan reproducir audio sin que el usuario toque algo primero, no hay forma de
+       saltarse eso) y mapeo de teclado tipo RetroArch — flechas para el D-pad, y podés
+       reconfigurar los botones desde el menú del propio reproductor (ícono de control
+       en la esquina).</p>
+  </div>
+
+  <footer>Truco86 — grjasis@code.ar</footer>
+
+  <script>
+    EJS_player = "#game";
+    EJS_gameName = "Truco86";
+    EJS_core = "nes"; /* usa el core fceumm (mismo motor que FCEUX) */
+    EJS_pathtodata = "https://cdn.emulatorjs.org/stable/data/";
+    EJS_gameUrl = "truco86.nes";
+  </script>
+  <script src="https://cdn.emulatorjs.org/stable/data/loader.js"></script>
+</body>
+</html>
