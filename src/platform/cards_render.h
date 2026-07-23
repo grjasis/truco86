@@ -52,6 +52,7 @@
  * empieza en TILE_SUIT_BIG_BASE, basto en +4, oro en +8, copa en +12. */
 #define TILE_SUIT_BIG_BASE  45
 #define TILE_WHITE          61 /* blanco SOLIDO (a diferencia de TILE_BLANK, que es transparente/color de fondo del pano) */
+#define TILE_LETTER_DOT     62 /* "." para "CODE.AR" en la pantalla de titulo */
 
 /* Paletas de fondo (ver main.c, palette[]) para pintar cada palo de un
  * color distinto (espada=azul, basto=verde, oro=amarillo, copa=rojo, con

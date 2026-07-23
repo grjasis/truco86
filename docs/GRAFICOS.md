@@ -264,7 +264,7 @@ Tres cambios de interfaz hechos junto con el sonido (Fase 9):
   silueta de 1x2, y el dorso de la CPU (`draw_card_back()`) repite el mismo
   tile dos veces verticalmente.
 - **Pantalla de título:** `title_screen()` en `main.c` dibuja "TRUCO 86",
-  el crédito ("CODE AR") y los 4 palos, y espera `START` antes de arrancar
+  el crédito ("CODE.AR") y los 4 palos, y espera `START` antes de arrancar
   el reparto — antes el juego entraba directo a la primera mano.
 - **Cursor de cartas/canto unificado, sin SELECT ni PASO:** el canto de
   truco/retruco/vale cuatro dejó de ser una acción aparte con **SELECT**
@@ -303,6 +303,8 @@ español de verdad":
   hace todavía `draw_number()` para el marcador) deja un cuadrado
   **transparente** que se ve verde (el color de fondo del paño) en vez de
   blanco, porque `TILE_BLANK` es el color 0 (transparente), no blanco.
+- **Letra "." (punto):** `TILE_LETTER_DOT`, para que la pantalla de título
+  pueda mostrar "CODE.AR" en vez de "CODE AR".
 - **Palo de 2x2 tiles (16x16px):** siluetas más grandes y sólidas de
   espada (una hoja con guarda y pomo), basto (un garrote que se ensancha
   hacia abajo), oro (un disco lleno) y copa (un cáliz ancho arriba que se

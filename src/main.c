@@ -739,7 +739,7 @@ static void title_screen(void)
     ppu_set_tile((unsigned char)(TITLE_COL + 5), TITLE_ROW, digit_tile(8));
     ppu_set_tile((unsigned char)(TITLE_COL + 6), TITLE_ROW, digit_tile(6));
 
-    draw_text(TITLE_CREDIT_COL, TITLE_CREDIT_ROW, "CODE AR");
+    draw_text(TITLE_CREDIT_COL, TITLE_CREDIT_ROW, "CODE.AR");
 
     ppu_set_tile(TITLE_SUITS_COL, TITLE_SUITS_ROW, TILE_SUIT_ESPADA);
     ppu_set_tile((unsigned char)(TITLE_SUITS_COL + 2), TITLE_SUITS_ROW, TILE_SUIT_BASTO);

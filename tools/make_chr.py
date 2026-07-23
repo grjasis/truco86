@@ -57,6 +57,7 @@ FONT_5X7 = {
     "T": ["11111", "00100", "00100", "00100", "00100", "00100", "00100"],
     "U": ["10001", "10001", "10001", "10001", "10001", "10001", "01110"],
     "V": ["10001", "10001", "10001", "10001", "10001", "01010", "00100"],
+    ".": ["00000", "00000", "00000", "00000", "00000", "01100", "01100"],
 }
 
 
@@ -419,6 +420,8 @@ for _pattern in (ESPADA_16, BASTO_16, ORO_16, COPA_16):
 # cuadrado verde (el color de fondo del paño) en el medio de la carta
 # blanca en vez de blanco liso.
 TILES.append(blank_grid("W"))  # TILE_WHITE
+
+TILES.append(letter_tile("."))  # TILE_LETTER_DOT: para "CODE.AR" en la pantalla de titulo
 
 COLOR_INDEX = {".": 0, "W": 1, "B": 2, "R": 3}
 

@@ -22,6 +22,7 @@ unsigned char letter_tile(char c)
         case 'U': return TILE_LETTER_U;
         case 'V': return TILE_LETTER_V;
         case 'G': return TILE_LETTER_G;
+        case '.': return TILE_LETTER_DOT;
         default:  return TILE_BLANK; /* espacio u otro caracter no soportado */
     }
 }

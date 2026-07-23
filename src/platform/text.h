@@ -4,8 +4,8 @@
 /* Texto simple en el nametable, usando la fuente de letras generada por
  * tools/make_chr.py (ver docs/GRAFICOS.md). Solo soporta el subconjunto de
  * mayusculas usado por los menus y textos del juego (A,C,D,E,F,G,I,L,N,O,
- * P,Q,R,S,T,U,V) y el espacio ' '; cualquier otro caracter se dibuja en
- * blanco.
+ * P,Q,R,S,T,U,V), el punto '.' (para "CODE.AR") y el espacio ' '; cualquier
+ * otro caracter se dibuja en blanco.
  *
  * Igual que con los tiles de carta (ver ppu_draw.h): si el render ya esta
  * prendido, hay que llamarlas justo despues de wait_vblank() y seguirlas
