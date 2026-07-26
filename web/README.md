@@ -12,6 +12,20 @@ puro: funcionaba pero con audio entrecortado/con delay y glitches visuales en
 esta ROM — EmulatorJS/fceumm los resolvió de raíz al ser un core mucho más
 preciso, así que se reemplazó por completo.)
 
+## Qué hay en la página
+
+Arriba el reproductor, y debajo: la tabla de teclas, un resumen de cómo se
+juega, y los enlaces al repo de GitHub y a la descarga del `.nes` (el mismo
+archivo que carga el emulador, servido con `download`).
+
+La tabla de teclas se muestra **solo en desktop** (`@media (hover: hover) and
+(pointer: fine)`): en celular/tablet no hay teclado y EmulatorJS dibuja su
+propio pad en pantalla, así que ahí se muestra esa aclaración en vez de las
+teclas. Las teclas de la tabla son las que mapea EmulatorJS por defecto
+(D-PAD = flechas, A = Z, B = X, START = Enter, SELECT = Espacio); el juego
+solo usa el D-PAD, A y START — B y SELECT están listados como "sin uso" para
+que nadie los busque.
+
 ## Actualizar el `.nes` que se sirve
 
 ```sh

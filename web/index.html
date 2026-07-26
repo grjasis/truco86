@@ -4,53 +4,205 @@
 <meta charset="utf-8">
 <title>Truco86</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Truco argentino para NES (PAL-N), jugable en el navegador.">
 <style>
-  :root { color-scheme: dark; }
+  :root {
+    color-scheme: dark;
+    --bg: #111;
+    --panel: #1b1b1b;
+    --line: #2e2e2e;
+    --fg: #eee;
+    --dim: #9a9a9a;
+    --accent: #6fdc6f;
+  }
+  * { box-sizing: border-box; }
   html, body {
     margin: 0;
     min-height: 100%;
-    background: #111;
-    color: #eee;
+    background: var(--bg);
+    color: var(--fg);
     font-family: -apple-system, system-ui, sans-serif;
+  }
+  body {
     display: flex;
     flex-direction: column;
     align-items: center;
+    padding: 0 1rem;
+  }
+  header {
+    text-align: center;
+    margin: 1.25rem 0 0.75rem;
   }
   h1 {
-    font-size: 1.1rem;
-    letter-spacing: 0.15em;
-    margin: 1rem 0 0.25rem;
-    color: #9f9;
+    font-size: 1.15rem;
+    letter-spacing: 0.18em;
+    margin: 0;
+    color: var(--accent);
+  }
+  header p {
+    margin: 0.35rem 0 0;
+    font-size: 0.8rem;
+    color: var(--dim);
   }
   #game {
-    width: min(90vw, 768px);
+    width: min(92vw, 768px);
     aspect-ratio: 256 / 240;
     background: #000;
   }
-  #controls {
-    max-width: 700px;
-    margin: 1.5rem 1rem 2rem;
-    font-size: 0.85rem;
-    color: #aaa;
-    line-height: 1.5;
+
+  main { width: min(92vw, 768px); }
+  section { margin: 1.5rem 0; }
+  h2 {
+    font-size: 0.8rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--dim);
+    margin: 0 0 0.75rem;
+    font-weight: 600;
   }
-  #controls b { color: #ddd; }
+
+  /* La tabla de teclas solo tiene sentido con un teclado de verdad: en
+     celular/tablet el emulador dibuja su propio pad en pantalla, asi que ahi
+     se muestra esa aclaracion en vez de las teclas. */
+  #teclado { display: none; }
+  @media (hover: hover) and (pointer: fine) {
+    #teclado { display: block; }
+    #tactil { display: none; }
+  }
+
+  ul.controles {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(215px, 1fr));
+    gap: 0.5rem;
+  }
+  ul.controles li {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 0.55rem 0.7rem;
+    font-size: 0.85rem;
+    color: var(--dim);
+  }
+  ul.controles b {
+    color: var(--fg);
+    font-weight: 600;
+    min-width: 4.2em;
+  }
+  ul.controles .que { margin-left: auto; text-align: right; }
+  kbd {
+    font: inherit;
+    font-size: 0.78rem;
+    background: #2a2a2a;
+    border: 1px solid #3d3d3d;
+    border-bottom-width: 2px;
+    border-radius: 4px;
+    padding: 0.1rem 0.4rem;
+    color: var(--fg);
+    white-space: nowrap;
+  }
+
+  p.suelto, ol.pasos {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--dim);
+    line-height: 1.65;
+  }
+  ol.pasos { padding-left: 1.2rem; }
+  ol.pasos strong { color: var(--fg); font-weight: 600; }
+
+  .acciones {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.6rem;
+  }
+  .acciones a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 0.6rem 0.9rem;
+    color: var(--fg);
+    text-decoration: none;
+    font-size: 0.85rem;
+  }
+  .acciones a:hover { border-color: var(--accent); color: var(--accent); }
+  .acciones svg { width: 1.05em; height: 1.05em; fill: currentColor; }
+  .acciones .nota { color: var(--dim); font-size: 0.78rem; }
+
   footer {
-    margin: 0 0 2rem;
+    margin: 1rem 0 2.5rem;
     font-size: 0.75rem;
     color: #666;
+    text-align: center;
   }
+  footer a { color: #888; }
 </style>
 </head>
 <body>
-  <h1>TRUCO 86</h1>
+  <header>
+    <h1>TRUCO 86</h1>
+    <p>Truco argentino para NES (PAL-N), corriendo en el navegador</p>
+  </header>
+
   <div id="game"></div>
 
-  <div id="controls">
-    <p><b>Controles:</b> D-PAD = flechas, START = Enter, SELECT = Espacio, A = Z, B = X.</p>
-  </div>
+  <main>
+    <section id="teclado">
+      <h2>Controles</h2>
+      <ul class="controles">
+        <li><b>D-PAD</b> <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> <span class="que">elegir carta y cantos</span></li>
+        <li><b>A</b> <kbd>Z</kbd> <span class="que">tirar carta / confirmar</span></li>
+        <li><b>START</b> <kbd>Enter</kbd> <span class="que">empezar / seguir</span></li>
+        <li><b>B</b> <kbd>X</kbd> <span class="que">sin uso</span></li>
+        <li><b>SELECT</b> <kbd>Espacio</kbd> <span class="que">sin uso</span></li>
+      </ul>
+      <p class="suelto" style="margin-top:0.75rem">
+        Todo se hace con el D-PAD y <kbd>Z</kbd>: no hace falta pasar ningún
+        menú para tirar una carta ni para saltear el envido.
+      </p>
+    </section>
 
-  <footer>Truco86 — grjasis@code.ar</footer>
+    <section id="tactil">
+      <h2>Controles</h2>
+      <p class="suelto">Usá el pad en pantalla que dibuja el emulador debajo del juego.</p>
+    </section>
+
+    <section>
+      <h2>Cómo se juega</h2>
+      <ol class="pasos">
+        <li>En la pantalla de inicio elegís <strong>con o sin flor</strong> y si la partida es <strong>a 15 o a 30</strong> puntos.</li>
+        <li>Abajo del todo está tu mano: te movés con <strong>izquierda/derecha</strong> y tirás la carta con <strong>A</strong>.</li>
+        <li>Desde las cartas, <strong>arriba</strong> te sube al menú de cantos: truco/retruco/vale cuatro e irse al mazo siempre, y en la primera baza también envido/real envido/falta envido.</li>
+        <li>La barra de arriba muestra el tanteador, <strong>cuánto vale la mano</strong> y de qué lado está la <strong>mano</strong>. Al costado de cada baza queda marcado quién la ganó.</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>Código y ROM</h2>
+      <div class="acciones">
+        <a href="https://github.com/grjasis/truco86" target="_blank" rel="noopener">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+          Fork me en GitHub
+        </a>
+        <a href="truco86.nes" download>
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1a1 1 0 0 1 1 1v6.59l2.3-2.3a1 1 0 1 1 1.4 1.42l-4 4a1 1 0 0 1-1.4 0l-4-4a1 1 0 0 1 1.4-1.42L7 8.59V2a1 1 0 0 1 1-1Zm-6 12a1 1 0 0 1 1-1h10a1 1 0 1 1 0 2H3a1 1 0 0 1-1-1Z"/></svg>
+          Descargar ROM
+        </a>
+        <span class="nota">.nes de 40 KB — anda en cualquier emulador de NES, o en una consola de verdad con un flashcart</span>
+      </div>
+    </section>
+  </main>
+
+  <footer>Truco86 — <a href="mailto:grjasis@code.ar">grjasis@code.ar</a></footer>
 
   <script>
     EJS_player = "#game";
