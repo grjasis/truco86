@@ -75,8 +75,8 @@ src/
     text.h/.c         # texto (subconjunto de letras) y numeros (marcador) para la UI
     canto_ui.h/.c     # menu de cantos de envido/flor — Fase 5
     truco_ui.h/.c     # menu de cantos de truco/retruco/vale cuatro — Fase 6
-    sound.h/.c        # SFX de un canal (pulso 1), "tira y olvida" — Fase 9
-    music.h/.c        # melodia de un canal (pulso 2) para la pantalla de titulo
+    sound.h/.c        # SFX "tira y olvida": pulso 1 (tonos) + ruido (golpes)
+    music.h/.c        # "La Cumparsita": melodia (pulso 2) + bajo (triangulo)
   test/
     test_rules.c      # tests de host para src/game/*
     Makefile           # `make test` compila y corre con gcc/clang
@@ -117,8 +117,8 @@ la CPU basada en heurísticas (ver
 [REGLAS.md](REGLAS.md#ia-de-la-cpu-fase-7)), y un marcador numérico
 persistente con condición de fin de partida a 15 o 30 puntos, elegible
 desde un menú en la pantalla de inicio junto con jugar con o sin flor
-(Fase 8, ver [REGLAS.md](REGLAS.md#partida-fase-8)), sonido básico (Fase 9, ver
-[GRAFICOS.md](GRAFICOS.md#sonido-fase-9)), y dos rondas de pulido de
+(Fase 8, ver [REGLAS.md](REGLAS.md#partida-fase-8)), sonido (Fase 9 + pulido, ver
+[GRAFICOS.md](GRAFICOS.md#sonido-fase-9--pulido)), y dos rondas de pulido de
 interfaz/interacción (ver
 [GRAFICOS.md](GRAFICOS.md#pulido-de-interfaz-e-interacción-después-de-la-fase-8)
 y
@@ -127,8 +127,10 @@ etiquetas VOS/CPU, cartas con forma de naipe español (verticales, número
 arriba y palo abajo, con marco), mensajes de qué canta la CPU, una grilla
 persistente de cartas jugadas (2 filas x 3 columnas, una por baza) para
 comparar quién ganó cada una, pantalla de título ("TRUCO 86", créditos a
-grjasis@code.ar) antes de la primera mano (con música mínima de un canal,
-ver [GRAFICOS.md](GRAFICOS.md#música-de-la-pantalla-de-título)), un
+grjasis@code.ar) antes de la primera mano (con la parte A de "La
+Cumparsita" en loop: melodía en el pulso 2 y bajo de tango en el
+triángulo, ver
+[GRAFICOS.md](GRAFICOS.md#música-de-la-pantalla-de-título-la-cumparsita)), un
 cursor único que combina elegir carta con cantar truco/retruco/vale
 cuatro Y envido/real/falta envido (Arriba/Abajo desde la fila de cartas,
 sin SELECT ni un "Paso" obligatorio para ninguno de los dos), una regla de
@@ -146,7 +148,7 @@ anterior tira primero en la siguiente; parda: sigue el mismo, ver
 [REGLAS.md](REGLAS.md#partida-fase-8)), la mano (quien tira/habla primero
 en la 1ra baza de cada mano, y gana los empates de envido/flor) rotando
 entre el jugador y la CPU una mano tras otra (`hand_mano` en `main.c`, ver
-[REGLAS.md](REGLAS.md#partida-fase-8)), y música (de un canal) para ganar
+[REGLAS.md](REGLAS.md#partida-fase-8)), y jingles para ganar
 o perder una mano además de la de la pantalla de título. Encima de todo eso
 hay una pasada de UI/UX (ver
 [GRAFICOS.md](GRAFICOS.md#rediseño-de-interfaz-texto-blanco-barra-de-estado-y-marcas-de-baza)):
@@ -158,9 +160,8 @@ rombo) en vez del damero anterior, puntero ancho para elegir carta y flecha
 `►` en los menús, y marcos de interfaz en la pantalla de título y en la
 final. Lo que falta:
 
-1. Música con más de un canal / distinta melodía durante las manos (hoy
-   solo hay melodías de un canal: la de la pantalla de título y los
-   jingles de ganar/perder mano).
+1. Música durante las manos (hoy solo suena en la pantalla de título y en
+   los jingles de ganar/perder mano; mientras se juega hay solo SFX).
 2. Distinción "malas"/"buenas" (mitad de partida) — hoy `target_score`
    (15 o 30, elegido en la pantalla de inicio) es un número simple sin
    ese matiz.

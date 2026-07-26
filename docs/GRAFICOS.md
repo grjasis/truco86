@@ -443,64 +443,97 @@ los cuatro palos grandes (cada uno de su color, los mismos que después se ven
 en las cartas) y el menú con una fila vacía entre opciones. La pantalla final
 muestra `GANASTE`/`PERDISTE` y el marcador final dentro de un marco.
 
-## Sonido (Fase 9)
+## Sonido (Fase 9 + pulido)
 
-`src/platform/sound.c` es un driver mínimo de un solo canal (pulso 1 de la
-APU, `$4000-$4003`): cada efecto es un preset de 4 bytes que se escribe de
-una sola vez ("tira y olvida"). El *contador de longitud* del hardware
-(campo `len_period_high`, bits altos) hace que la nota se corte sola
-después de un rato sin que el juego tenga que actualizar nada cuadro a
-cuadro — no hay secuenciador ni música, solo SFX cortos:
+`src/platform/sound.c` es un driver de efectos "tira y olvida": cada efecto
+es un preset que se escribe de una sola vez y el propio hardware lo corta
+después de un rato (el *contador de longitud*, bits altos del último
+registro), sin que el juego tenga que actualizar nada cuadro a cuadro.
 
-| Efecto | Cuándo | Tono aproximado |
+Usa **dos canales**, que es lo que lo saca de "beeps planos":
+
+- **Pulso 1** (`$4000-$4003`) para los efectos con tono. Los presets ya no
+  usan volumen constante: dejan el *envelope* activo (bit de volumen
+  constante en 0), así la nota arranca fuerte y **decae sola** en vez de
+  cortarse de golpe; los 4 bits bajos pasan a ser la velocidad de ese
+  decaimiento. Además usan el *barrido* (`$4001`, antes siempre en 0), que
+  hace que la APU suba o baje el tono sola mientras suena: hacia arriba
+  suena afirmativo, hacia abajo suena a caída.
+- **Ruido** (`$400C-$400F`) para los golpes. Una carta que cae sobre la mesa
+  es un golpe, no un tono, y de paso no le pisa el canal de pulso a nada.
+
+| Efecto | Cuándo | Canal y forma |
 |---|---|---|
-| `SFX_MOVE` | mover el cursor (menú o mano) | agudo, corto |
-| `SFX_CONFIRM` | confirmar una opción de menú | medio-agudo, corto |
-| `SFX_CARD` | jugar una carta | medio, corto |
-| `SFX_CANTO` | la CPU canta/responde/escala | medio-grave, un poco más largo |
-| `SFX_WIN` | se ganan puntos (baza, envido/flor o mano) | agudo, largo |
-| `SFX_LOSE` | se pierden puntos | grave, largo |
+| `SFX_MOVE` | mover el cursor (menú o mano) | pulso, click agudo y seco |
+| `SFX_CONFIRM` | confirmar una opción de menú | pulso, barrido hacia arriba |
+| `SFX_CARD` | jugar una carta | ruido, golpe corto |
+| `SFX_CANTO` | cantar/responder/escalar | pulso, barrido hacia abajo, largo |
+| `SFX_WIN` | se ganan puntos | pulso, barrido hacia arriba, brillante |
+| `SFX_LOSE` | se pierden puntos | pulso, barrido hacia abajo, grave |
+| `SFX_DEAL` | repartir una mano nueva | ruido, más grave y largo |
+
+Qué canales están prendidos se controla con `$4015`, y hay una trampa del
+hardware: ese registro **se lee y se escribe con significados distintos**
+(leer da flags de actividad/IRQ, no lo último que se escribió), así que un
+leer-modificar-escribir (`|=`, `&=`) corrompe qué canales quedan sonando.
+Por eso se escribe siempre el valor completo, con dos constantes en
+`sound.h`: `APU_CH_SFX` (pulso 1 + ruido) y `APU_CH_MUSIC` (esos dos más
+pulso 2 y triángulo).
 
 A diferencia de los tiles/VRAM, escribir los registros de la APU **no**
 tiene ninguna restricción de vblank (no hay "t register" ni nada
 equivalente) — se puede llamar `sound_play()` en cualquier momento del
 código, sin apagar el render ni sincronizar con `wait_vblank()`.
 
-## Música de la pantalla de título
+## Música de la pantalla de título: La Cumparsita
 
-`src/platform/music.c` toca una melodía corta en loop por el pulso 2 de la
-APU ($4004-$4007), sin tocar el pulso 1 (`sound.c`, los SFX de todo el
-juego siguen funcionando igual): `music_init()` prende el canal y arranca
-la melodia, `music_update()` hay que llamarla una vez por frame (adentro
-del loop de `title_screen()` en `main.c`) para que avance nota por nota, y
-`music_stop()` la apaga al presionar START.
+`src/platform/music.c` toca en loop la **parte A de "La Cumparsita"**
+(Gerardo Matos Rodríguez, 1916/1917; el compositor murió en 1948, así que
+está en dominio público desde hace más de 70 años), 16 compases de 2/4 en
+Sol menor:
 
-El mismo canal también se usa para dos jingles cortos de un solo disparo
-(no en loop, ~1.5s): `music_play_win()`/`music_play_lose()`, un arpegio de
-La mayor ascendente o descendente (mismas notas que "La Cumparsita" de
-abajo, así que no hacen falta periodos nuevos), llamados desde `main.c`
-cuando termina de ganarse o perderse una mano (en vez de solo esperar en
-silencio con `wait_frames()` como antes).
+- La **melodía** va por el pulso 2 (`$4004-$4007`).
+- El **bajo** va por el triángulo (`$4008-$400B`): marcato de negras con
+  fundamental en el primer tiempo y quinta en el segundo, sobre la armonía
+  de la parte A (Re7 dominante / Sol menor, con un Do menor en el
+  anteúltimo compás). Es lo que le da el aire de tango; con la melodía sola
+  sonaba a ringtone.
 
-Es una transcripción nota por nota (y corchea por corchea, todas las notas
-son corcheas parejas) de **"La Cumparsita"** (Gerardo Matos Rodríguez,
-1916/1917; el compositor murió en 1948, así que está en dominio público
-desde hace más de 70 años), tomada de la notación RTTTL del ringtone
-clásico de Nokia del tema:
+`music_init()` prende los canales y arranca desde el principio,
+`music_update()` hay que llamarla una vez por frame (adentro del loop de
+`title_screen()` en `main.c`) para que avance, y `music_stop()` apaga los
+dos canales al presionar START. El pulso 1 y el canal de ruido nunca se
+tocan, así que los SFX siguen funcionando igual durante la música.
 
-```
-8c#1 8c#1 8d1 8c#1 8d1 8c#1 8d1 8c#1 8c#1 8d1 8c#1 8e1 8d1 8c#1
-8b0 8a0 8a0 8b0 8c#1 8d1 8c#1 8b0 8a0 8g#0 8a0 8b0 8a0
-```
+**De dónde salen las notas.** La versión anterior decía ser este tango pero
+era otra cosa: una transcripción del RTTTL de un ringtone que no coincide
+con la melodía real. La de ahora está sacada nota por nota de un arreglo en
+Sol menor de la partitura (el que circula como versión para flauta), con
+las duraciones y los silencios de staccato reales de la parte A. Cada
+entrada de `MELODY[]` es `{ nota, cuadros }`, con la nota como índice en
+`NOTE_PERIOD[]` (0 = silencio).
 
-(`8` = corchea, letra = nota, número = octava del formato RTTTL). En
-`music.c` esas notas están bajadas una octava (Do#3/Re3/Mi3/Si2/La2/Sol#2
-en la numeración de RTTTL, equivalente a Do#4/Re4/Mi4/Si3/La3/Sol#3 en
-notación científica) para que el tono sea más cómodo en el canal de pulso
-del NES; la duración relativa (todas corcheas iguales) se mantuvo tal
-cual. La tabla de notas está en un solo array (`MELODY[]` en `music.c`),
-fácil de ajustar si alguien quiere afinarla contra la partitura completa o
-reemplazarla por otra pieza de dominio público.
+**Duraciones.** La corchea son 12 cuadros a 50 cuadros/seg (PAL-N), o sea
+negra = 24 cuadros ≈ 125 pulsos por minuto. La parte A entera son 768
+cuadros (~15 s) y el bajo son 32 negras = los mismos 768 cuadros, así que
+melodía y bajo quedan sincronizados vuelta tras vuelta sin ningún ajuste.
+
+**Articulación.** `music_update()` silencia la melodía un cuadro antes de
+cada nota nueva: como el volumen es constante y no hay ataque, sin ese
+hueco las corcheas repetidas del tango se escuchaban como una sola nota
+larga. El bajo usa el mismo truco con un hueco más grande (8 de los 24
+cuadros de cada negra), que es lo que le da el ataque seco del marcato.
+
+Los mismos canales se usan para dos jingles cortos de un solo disparo (no
+en loop, ~1.5 s): `music_play_win()`/`music_play_lose()`, un arpegio de Sol
+menor (la tonalidad del tango) ascendente o descendente, llamados desde
+`main.c` cuando termina de ganarse o perderse una mano.
+
+**Verificación.** Se comprobó enganchando las escrituras a `$4006/$4007`
+(melodía) y `$400A/$400B` (bajo) con Lua en fceux y reconstruyendo los
+periodos: los primeros compases dan Re-Do-La-Fa# / Re-Mib-Re-Do#-Re sobre
+un bajo Re-La, y el cambio a Sol menor (bajo Sol-Re) cae exactamente en el
+tercer compás, como en la partitura.
 
 ## Verificación sin emulador
 

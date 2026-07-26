@@ -359,6 +359,8 @@ static void deal_hand(void)
     Card deck[DECK_SIZE];
     unsigned char i;
 
+    sound_play(SFX_DEAL); /* el mazo repartiendo, antes de apagar el render */
+
     PPU.mask = 0x00; /* render apagado: momento seguro para escribir VRAM sin limite */
 
     ppu_clear_nametable0();

@@ -62,8 +62,8 @@ reemplaza probar el `.nes` en un emulador real con soporte PAL-N.
 ## Estado
 
 Jugable de punta a punta: pantalla de título ("TRUCO 86", créditos a
-grjasis@code.ar, con una melodía de un canal inspirada en "La Cumparsita")
-con un menú de 4 opciones para elegir las reglas de la partida (CON/SIN
+grjasis@code.ar, con la parte A de "La Cumparsita" en loop: melodía y bajo
+de tango en dos canales de la APU) con un menú de 4 opciones para elegir las reglas de la partida (CON/SIN
 FLOR, A 15/30 puntos) antes de arrancar, manos repartidas una atrás de otra,
 con cantos de envido/flor
 y de truco/retruco/vale cuatro (con "irse al mazo") integrados en un solo
@@ -72,8 +72,9 @@ truco, lo que haya disponible en ese momento) y Abajo desde la primera
 opción vuelve a elegir carta — no hace falta "pasar" nada para jugar
 directo ni para saltear el envido. Una CPU con IA propia que además dice
 qué cantó ("CPU: QUIERO") y que puede tomar la iniciativa y cantar
-truco/envido por su cuenta con una mano fuerte (no solo responder), SFX
-cortos para cursor/cartas/cantos/resultado, y un marcador ("VOS"/"CPU")
+truco/envido por su cuenta con una mano fuerte (no solo responder),
+efectos de sonido para cursor/reparto/cartas/cantos/resultado (tonos con
+barrido en el pulso 1, golpes en el canal de ruido), y un marcador ("VOS"/"CPU")
 siempre visible arriba de la pantalla hasta que alguno llega al objetivo
 elegido (15 o 30 puntos, pantalla de "GANASTE"/"PERDISTE" al final). Las cartas tienen forma de
 naipe español de verdad (verticales, número arriba y palo abajo, con
@@ -83,7 +84,7 @@ y la mano termina apenas queda decidida con 2 de las 3 bazas (no fuerza
 jugar la 3ra si ya no cambia nada). Ver
 [docs/GRAFICOS.md](docs/GRAFICOS.md#naipes-verticales-pantalla-de-título-y-cursor-unificado-después-de-la-fase-9)
 para el detalle de estos cambios y [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md)
-para lo que falta (música con más de un canal, IA más avanzada, etc.).
+para lo que falta (música durante las manos, IA más avanzada, etc.).
 
 ## Licencia
 
