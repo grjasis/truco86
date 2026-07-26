@@ -91,10 +91,10 @@ void draw_card_face(unsigned char col, unsigned char row, Card c)
 void draw_card_back(unsigned char col, unsigned char row)
 {
     unsigned char col2 = (unsigned char)(col + 1);
-    ppu_set_tile(col, row, TILE_CARD_BACK);
-    ppu_set_tile(col2, row, TILE_CARD_BACK);
-    ppu_set_tile(col, (unsigned char)(row + 1), TILE_CARD_BACK);
-    ppu_set_tile(col2, (unsigned char)(row + 1), TILE_CARD_BACK);
+    ppu_set_tile(col, row, TILE_BACK_BASE);
+    ppu_set_tile(col2, row, (unsigned char)(TILE_BACK_BASE + 1));
+    ppu_set_tile(col, (unsigned char)(row + 1), (unsigned char)(TILE_BACK_BASE + 2));
+    ppu_set_tile(col2, (unsigned char)(row + 1), (unsigned char)(TILE_BACK_BASE + 3));
 }
 
 void clear_card(unsigned char col, unsigned char row)

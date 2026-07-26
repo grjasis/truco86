@@ -122,7 +122,7 @@ static unsigned char choose_response(const TrucoChain *chain, unsigned char *env
             const char *text = (kind[i] == KIND_TRUCO) ? OPTION_TEXT[code[i]] : canto_option_text(code[i]);
             draw_text(MENU_COL, (unsigned char)(MENU_ROW + i), text);
         }
-        ppu_set_tile(MENU_CURSOR_COL, (unsigned char)(MENU_ROW + sel), TILE_CURSOR);
+        ppu_set_tile(MENU_CURSOR_COL, (unsigned char)(MENU_ROW + sel), TILE_ARROW_RIGHT);
         ppu_reset_scroll();
         PPU.control = 0x80;
         PPU.mask = 0x1E;
@@ -136,7 +136,7 @@ static unsigned char choose_response(const TrucoChain *chain, unsigned char *env
                 unsigned char old_sel = sel;
                 sel = (sel == 0) ? (unsigned char)(n - 1) : (unsigned char)(sel - 1);
                 ppu_set_tile(MENU_CURSOR_COL, (unsigned char)(MENU_ROW + old_sel), TILE_BLANK);
-                ppu_set_tile(MENU_CURSOR_COL, (unsigned char)(MENU_ROW + sel), TILE_CURSOR);
+                ppu_set_tile(MENU_CURSOR_COL, (unsigned char)(MENU_ROW + sel), TILE_ARROW_RIGHT);
                 ppu_finish_vram_update(0x80);
                 sound_play(SFX_MOVE);
             } else if (pressed & JOY_DOWN_MASK) {
@@ -144,7 +144,7 @@ static unsigned char choose_response(const TrucoChain *chain, unsigned char *env
                 sel = (unsigned char)(sel + 1);
                 if (sel >= n) sel = 0;
                 ppu_set_tile(MENU_CURSOR_COL, (unsigned char)(MENU_ROW + old_sel), TILE_BLANK);
-                ppu_set_tile(MENU_CURSOR_COL, (unsigned char)(MENU_ROW + sel), TILE_CURSOR);
+                ppu_set_tile(MENU_CURSOR_COL, (unsigned char)(MENU_ROW + sel), TILE_ARROW_RIGHT);
                 ppu_finish_vram_update(0x80);
                 sound_play(SFX_MOVE);
             } else if (pressed & JOY_BTN_A_MASK) {

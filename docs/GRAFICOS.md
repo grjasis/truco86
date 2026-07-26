@@ -63,6 +63,20 @@ CHR-ROM.
 | 36 | Letra G (fondo transparente) — para GANASTE |
 | 37-40 | Borde de carta: arista superior, inferior, izquierda, derecha (1px negro sobre blanco) |
 | 41-44 | Borde de carta: esquinas superior-izq., superior-der., inferior-izq., inferior-der. |
+| 45-60 | Palos grandes 16x16 (4 tiles cada uno: TL,TR,BL,BR) espada/basto/oro/copa |
+| 61 | Blanco sólido (distinto del tile 0, que es transparente) |
+| 62 | Punto "." |
+| 63-72 | Dígitos 0..9 de **interfaz** (fondo transparente, blancos con sombra) |
+| 73-76 | Dorso de carta 16x16 (4 tiles) — naipe rojo con marco y rombo |
+| 77 | Letra M (para "MANO") |
+| 78-80 | Marca de baza: ganó el jugador (▼), ganó la CPU (▲), parda (=) |
+| 81-82 | Puntero ancho de selección de carta (2 tiles) |
+| 83 | Flecha de cursor de menú (►) |
+| 84-90 | Marco fino blanco de interfaz: horizontal, vertical izq./der., 4 esquinas |
+
+Los tiles 11-14 (palos chicos) y 15 (dorso viejo de 8x8) quedaron sin uso al
+agrandarse las cartas y el dorso; se siguen generando para no correr los IDs
+del resto.
 
 Estas constantes están espejadas en `src/platform/cards_render.h`
 (`TILE_RANK_1`, `TILE_SUIT_ESPADA`, `TILE_LETTER_A`, `TILE_DIGIT_0`,
@@ -355,6 +369,79 @@ de alto con marco, contra 3x4 antes), incluyendo dejarle lugar al peor
 caso del menú de responder un canto pendiente (hasta 7 filas: las 4
 opciones de truco mezcladas con las 3 de un envido que se puede
 interrumpir en el medio, ver `truco_ui.h`).
+
+## Rediseño de interfaz: texto blanco, barra de estado y marcas de baza
+
+Pasada de UI/UX sobre lo anterior. Los cambios y por qué:
+
+**Texto blanco con sombra.** `letter_tile()` dibujaba las letras con tinta
+negra sobre fondo transparente, o sea negro sobre el verde del paño: se leía
+apagado. Ahora la letra va en blanco (color 1) con una copia negra corrida
+**1px a la derecha** que hace de sombra. La sombra va solo al costado, no
+hacia abajo, para que el glifo siga midiendo 7px de alto y quede 1px libre
+entre renglones — con la sombra en diagonal las líneas de los menús se
+tocaban entre sí.
+
+**Dígitos de interfaz aparte (63-72).** Los dígitos de `big_digit_tile()`
+tienen fondo **blanco** porque van impresos sobre la cara de una carta; usar
+esos mismos tiles en el marcador dejaba cada número dentro de un cuadradito
+blanco flotando sobre el paño. `digit_tile()` ahora devuelve los nuevos tiles
+de interfaz (transparentes, blancos con sombra) y `rank_tiles_for()` sigue
+usando los de fondo blanco para las cartas.
+
+**Un solo color por paleta.** Antes las paletas de palo cambiaban el color
+2 (`PALETTE_ESPADA` lo ponía azul, `PALETTE_BASTO` verde). Como el bloque de
+atributos que colorea el palo también alcanza a la fila del número y al marco
+de abajo (el "sangrado" que ya estaba documentado), el número salía del color
+del palo: un "6" de basto quedaba verde claro sobre blanco, casi ilegible.
+Ahora **los cuatro palos grandes se dibujan con la tinta 3** (incluidos
+espada y basto, que antes usaban la 2) y el color 2 queda negro en las cuatro
+paletas. El único color que cambia entre paletas es el 3. Resultado: el palo
+se pinta de su color y el número y el marco quedan siempre negros.
+
+**Barra de estado (filas 1 y 2).** Fila 1: `VOS n` a la izquierda, `CPU n` a
+la derecha y `VALE n` en el medio — cuánto vale la mano ahora mismo
+(1/2/3/4 según truco/retruco/vale cuatro), que antes no se mostraba en ningún
+lado. Fila 2: una línea fina de punta a punta con la palabra `MANO`
+incrustada del lado del que es mano esta mano. La barra completa se dibuja
+una sola vez por mano en `deal_hand()` con el render apagado;
+`refresh_scoreboard()` reescribe solo los 4 tiles de los dos números y
+`refresh_stake()` solo el dígito del `VALE`, para no pasarse de la ventana de
+vblank.
+
+**Marcas de baza + línea de mesa.** Al terminar cada baza se dibuja, en el
+margen izquierdo de la columna de esa baza, un triángulo hacia abajo (la ganó
+el jugador), hacia arriba (la ganó la CPU) o un `=` (parda): así se ve el
+1-0 / 1-1 de la mano de un vistazo, en vez de depender del flash de color,
+que pasa y no queda. Van sobre una línea punteada horizontal (fila 10) que
+separa la mitad de la CPU de la del jugador y llena el vacío verde que queda
+al principio de la mano.
+
+**Cartas centradas.** `HAND_COL` pasó de `{4,12,20}` a `{6,14,22}`: las tres
+columnas quedan centradas en la pantalla (ocupan las columnas 5 a 24 de 32
+contando los marcos). Tienen que seguir siendo **pares**: la tabla de
+atributos agrupa de a 2x2 tiles alineados a columnas pares, así que con una
+columna impar solo se pintaría de color la mitad del palo.
+
+**Dorso de carta de verdad.** El dorso era un damero de 1px repetido en 2x2
+tiles sin marco y en pantalla se veía como una manchita de ruido. Ahora es un
+dibujo de 16x16 (`CARD_BACK_16`, 4 tiles): naipe rojo con marco negro y un
+rombo blanco en el medio.
+
+**Cursores.** La selección de carta usa un puntero ancho de 2 tiles
+(triángulo de 16px) en vez de una flechita de 8px debajo de una carta de
+32px, y los menús usan una flecha `►` que apunta al texto de la opción.
+
+**Marcos de interfaz.** `draw_frame()`/`draw_rule()` (`src/platform/text.c`)
+dibujan un marco fino blanco sobre el paño, distinto de los `TILE_BORDER_*`
+(que son el marco negro sobre blanco de una carta). Se usan para encuadrar la
+pantalla de título y la de resultado final, y para la línea de la barra de
+estado y la de mesa.
+
+**Pantalla de título y de resultado.** El título va dentro de un marco, con
+los cuatro palos grandes (cada uno de su color, los mismos que después se ven
+en las cartas) y el menú con una fila vacía entre opciones. La pantalla final
+muestra `GANASTE`/`PERDISTE` y el marcador final dentro de un marco.
 
 ## Sonido (Fase 9)
 

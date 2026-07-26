@@ -147,7 +147,16 @@ anterior tira primero en la siguiente; parda: sigue el mismo, ver
 en la 1ra baza de cada mano, y gana los empates de envido/flor) rotando
 entre el jugador y la CPU una mano tras otra (`hand_mano` en `main.c`, ver
 [REGLAS.md](REGLAS.md#partida-fase-8)), y música (de un canal) para ganar
-o perder una mano además de la de la pantalla de título. Lo que falta:
+o perder una mano además de la de la pantalla de título. Encima de todo eso
+hay una pasada de UI/UX (ver
+[GRAFICOS.md](GRAFICOS.md#rediseño-de-interfaz-texto-blanco-barra-de-estado-y-marcas-de-baza)):
+texto blanco con sombra en vez de tinta negra sobre el paño, una barra de
+estado arriba con el marcador de los dos, cuánto vale la mano (`VALE n`) y de
+qué lado está la mano, marcas de quién ganó cada baza sobre una línea de mesa,
+cartas centradas en la pantalla, un dorso de carta dibujado (naipe rojo con
+rombo) en vez del damero anterior, puntero ancho para elegir carta y flecha
+`►` en los menús, y marcos de interfaz en la pantalla de título y en la
+final. Lo que falta:
 
 1. Música con más de un canal / distinta melodía durante las manos (hoy
    solo hay melodías de un canal: la de la pantalla de título y los

@@ -57,6 +57,7 @@ FONT_5X7 = {
     "T": ["11111", "00100", "00100", "00100", "00100", "00100", "00100"],
     "U": ["10001", "10001", "10001", "10001", "10001", "10001", "01110"],
     "V": ["10001", "10001", "10001", "10001", "10001", "01010", "00100"],
+    "M": ["10001", "11011", "10101", "10101", "10001", "10001", "10001"],
     ".": ["00000", "00000", "00000", "00000", "00000", "01100", "01100"],
 }
 
@@ -79,10 +80,25 @@ def big_digit_tile(d):
 
 
 def letter_tile(ch):
-    """Letra de menu: fondo transparente (flota sobre el paño), tinta negra."""
+    """Letra de la interfaz: fondo transparente (flota sobre el paño), tinta
+    BLANCA con una sombra negra corrida 1px abajo/derecha. El blanco sobre el
+    verde del paño tiene mucho mas contraste que la tinta negra que se usaba
+    antes (se leia apagada), y la sombra le da relieve y la despega del fondo
+    sin necesitar un panel opaco atras. La sombra va corrida SOLO a la
+    derecha (no hacia abajo): asi el glifo sigue midiendo 7px de alto y queda
+    1px libre entre renglones — con la sombra hacia abajo las lineas de los
+    menus se tocaban entre si y se leian apelmazadas."""
     g = blank_grid(".")
-    stamp(g, FONT_5X7[ch], top=0, left=1, ink="B")
+    stamp(g, FONT_5X7[ch], top=0, left=2, ink="B")
+    stamp(g, FONT_5X7[ch], top=0, left=1, ink="W")
     return g
+
+
+def hud_digit_tile(d):
+    """Digito de la interfaz (marcador, opciones del titulo): mismo estilo que
+    letter_tile(), fondo transparente. Distinto de big_digit_tile(), que tiene
+    fondo BLANCO porque va impreso sobre la cara de una carta."""
+    return letter_tile(d)
 
 
 def double_digit_tile(tens, ones):
@@ -158,44 +174,50 @@ COPA = rows_from_strings([
 # Palos GRANDES (16x16, partidos en 4 tiles de 8x8 con split_quadrants):
 # version mas grande y detallada de los palos de arriba, para el numero/palo
 # de cada carta en mesa (ver cards_render.c, TILE_SUIT_*_TL/TR/BL/BR). Los
-# palos chicos (ESPADA..COPA) se siguen usando nada mas para el adorno de la
-# pantalla de titulo.
+# palos chicos (ESPADA..COPA) quedaron sin uso.
+#
+# Los CUATRO usan la tinta 'R' (color 3), incluso espada y basto que se ven
+# azul y verde: el color 3 es el unico que cambia entre las 4 paletas de palo
+# (ver palette[] en main.c). El color 2 queda negro en todas, asi el numero de
+# la carta y su marco siguen siendo negros aunque el bloque de atributos que
+# pinta el palo tambien los alcance — antes el numero salia del color del palo
+# y un "6" de basto quedaba verde claro sobre blanco, casi ilegible.
 ESPADA_16 = [
-    "WWWWWWWBWWWWWWWW",
-    "WWWWWWBBBWWWWWWW",
-    "WWWWWWBBBWWWWWWW",
-    "WWWWWBBBBBWWWWWW",
-    "WWWWWBBBBBWWWWWW",
-    "WWWWWWBBBWWWWWWW",
-    "WWWWWWBBBWWWWWWW",
-    "WWWWBBBBBBBWWWWW",
-    "WWWWWWBBBWWWWWWW",
-    "WWWWWWBBBWWWWWWW",
-    "WWWWWWBBBWWWWWWW",
-    "WWWWWWBBBWWWWWWW",
-    "WWWWWWBBBWWWWWWW",
-    "WWWWWBBBBBWWWWWW",
-    "WWWWWWBBBWWWWWWW",
-    "WWWWWWWBWWWWWWWW",
+    "WWWWWWWRWWWWWWWW",
+    "WWWWWWRRRWWWWWWW",
+    "WWWWWWRRRWWWWWWW",
+    "WWWWWRRRRRWWWWWW",
+    "WWWWWRRRRRWWWWWW",
+    "WWWWWWRRRWWWWWWW",
+    "WWWWWWRRRWWWWWWW",
+    "WWWWRRRRRRRWWWWW",
+    "WWWWWWRRRWWWWWWW",
+    "WWWWWWRRRWWWWWWW",
+    "WWWWWWRRRWWWWWWW",
+    "WWWWWWRRRWWWWWWW",
+    "WWWWWWRRRWWWWWWW",
+    "WWWWWRRRRRWWWWWW",
+    "WWWWWWRRRWWWWWWW",
+    "WWWWWWWRWWWWWWWW",
 ]
 
 BASTO_16 = [
-    "WWWWWWBBBBWWWWWW",
-    "WWWWWWBBBBWWWWWW",
-    "WWWWWBBBBBBWWWWW",
-    "WWWWWBBBBBBWWWWW",
-    "WWWWBBBBBBBBWWWW",
-    "WWWWWBBBBBBWWWWW",
-    "WWWWWBBBBBBWWWWW",
-    "WWWWBBBBBBBBWWWW",
-    "WWWWBBBBBBBBWWWW",
-    "WWWBBBBBBBBBWWWW",
-    "WWWBBBBBBBBBWWWW",
-    "WWWWBBBBBBBBWWWW",
-    "WWWBBBBBBBBBWWWW",
-    "WWWBBBBBBBBBWWWW",
-    "WWBBBBBBBBBBWWWW",
-    "WWBBBBBBBBBBWWWW",
+    "WWWWWWRRRRWWWWWW",
+    "WWWWWWRRRRWWWWWW",
+    "WWWWWRRRRRRWWWWW",
+    "WWWWWRRRRRRWWWWW",
+    "WWWWRRRRRRRRWWWW",
+    "WWWWWRRRRRRWWWWW",
+    "WWWWWRRRRRRWWWWW",
+    "WWWWRRRRRRRRWWWW",
+    "WWWWRRRRRRRRWWWW",
+    "WWWRRRRRRRRRWWWW",
+    "WWWRRRRRRRRRWWWW",
+    "WWWWRRRRRRRRWWWW",
+    "WWWRRRRRRRRRWWWW",
+    "WWWRRRRRRRRRWWWW",
+    "WWRRRRRRRRRRWWWW",
+    "WWRRRRRRRRRRWWWW",
 ]
 
 # Disco solido (moneda/sol): mas claro a este tamano que un anillo con
@@ -241,7 +263,31 @@ COPA_16 = [
     "WWWWWWWWWWWWWWWW",
 ]
 
-# Dorso de carta: cruz-hachurado simple, para las cartas boca abajo de la CPU.
+# Dorso de carta CHICO (16x16 = 4 tiles), para la mano tapada de la CPU: un
+# naipe rojo con marco negro y un rombo blanco en el medio. Antes el dorso era
+# un damero de 1px repetido en 2x2 tiles sin marco, y en pantalla se veia como
+# una manchita de ruido en vez de una carta dada vuelta.
+CARD_BACK_16 = [
+    "BBBBBBBBBBBBBBBB",
+    "BRRRRRRRRRRRRRRB",
+    "BRRRRRRWWRRRRRRB",
+    "BRRRRRWWWWRRRRRB",
+    "BRRRRWWWRWWWRRRB",
+    "BRRRWWWRRRWWWRRB",
+    "BRRWWWRRRRRWWWRB",
+    "BRWWWRRRRRRRWWWB",
+    "BWWWRRRRRRRRRWWB",
+    "BRWWWRRRRRRRWWWB",
+    "BRRWWWRRRRRWWWRB",
+    "BRRRWWWRRRWWWRRB",
+    "BRRRRWWWRWWWRRRB",
+    "BRRRRRWWWWRRRRRB",
+    "BRRRRRRWWRRRRRRB",
+    "BBBBBBBBBBBBBBBB",
+]
+
+# Dorso de carta (legado, 8x8): cruz-hachurado simple. Reemplazado por
+# CARD_BACK_16; se sigue generando para no correr los IDs de tile.
 CARD_BACK = rows_from_strings([
     "BWBWBWBW",
     "WBWBWBWB",
@@ -253,14 +299,162 @@ CARD_BACK = rows_from_strings([
     "WBWBWBWB",
 ])
 
-# Cursor: flechita hacia arriba, se dibuja debajo de la carta seleccionada.
+# Cursor (legado): flechita chica hacia arriba. Se sigue generando para no
+# correr los IDs de tile ya publicados, pero los menus usan ARROW_RIGHT y la
+# seleccion de carta usa el puntero ancho CURSOR_WIDE_L/R.
 CURSOR = rows_from_strings([
     "........",
-    "...BB...",
-    "..BBBB..",
-    ".BBBBBB.",
-    "...BB...",
-    "...BB...",
+    "...WW...",
+    "..WWWW..",
+    ".WWWWWW.",
+    "...WW...",
+    "...WW...",
+    "........",
+    "........",
+])
+
+# Puntero ANCHO de seleccion de carta (16x8, dos tiles): un triangulo grande
+# que apunta a la carta elegida desde abajo. Antes era una flechita de 8x8
+# sola debajo de una carta de 32px de ancho, y casi no se veia cual estaba
+# seleccionada.
+CURSOR_WIDE_L = rows_from_strings([
+    "......BW",
+    ".....BWW",
+    "....BWWW",
+    "...BWWWW",
+    "..BWWWWW",
+    "........",
+    "........",
+    "........",
+])
+CURSOR_WIDE_R = rows_from_strings([
+    "WB......",
+    "WWB.....",
+    "WWWB....",
+    "WWWWB...",
+    "WWWWWB..",
+    "........",
+    "........",
+    "........",
+])
+
+# Cursor de menu: flecha hacia la derecha, apunta al texto de la opcion.
+ARROW_RIGHT = rows_from_strings([
+    "........",
+    "..WB....",
+    "..WWB...",
+    "..WWWB..",
+    "..WWWWB.",
+    "..WWWB..",
+    "..WWB...",
+    "..WB....",
+])
+
+# Marcas de resultado de cada baza (se dibujan al costado de la columna de la
+# baza): triangulo hacia abajo = la gano el jugador, hacia arriba = la gano la
+# CPU, "=" = parda. Asi el 1-0 / 1-1 de la mano se ve de un vistazo, en vez de
+# tener que acordarse del flash de color.
+MARK_DOWN = rows_from_strings([
+    "........",
+    ".WWWWWW.",
+    ".WWWWWW.",
+    "..WWWW..",
+    "..WWWW..",
+    "...WW...",
+    "...WW...",
+    "........",
+])
+MARK_UP = rows_from_strings([
+    "........",
+    "...WW...",
+    "...WW...",
+    "..WWWW..",
+    "..WWWW..",
+    ".WWWWWW.",
+    ".WWWWWW.",
+    "........",
+])
+MARK_TIE = rows_from_strings([
+    "........",
+    "........",
+    ".WWWWWW.",
+    ".WWWWWW.",
+    "........",
+    ".WWWWWW.",
+    ".WWWWWW.",
+    "........",
+])
+
+# Marco de la interfaz (linea blanca fina sobre el paño, fondo transparente),
+# para encuadrar la pantalla de titulo y la de resultado. Distinto de los
+# BORDER_* de arriba, que son el marco NEGRO sobre BLANCO de una carta.
+UI_H = rows_from_strings([
+    "........",
+    "........",
+    "........",
+    "WWWWWWWW",
+    "........",
+    "........",
+    "........",
+    "........",
+])
+UI_VL = rows_from_strings([
+    "...W....",
+    "...W....",
+    "...W....",
+    "...W....",
+    "...W....",
+    "...W....",
+    "...W....",
+    "...W....",
+])
+UI_VR = rows_from_strings([
+    "....W...",
+    "....W...",
+    "....W...",
+    "....W...",
+    "....W...",
+    "....W...",
+    "....W...",
+    "....W...",
+])
+UI_TL = rows_from_strings([
+    "........",
+    "........",
+    "........",
+    "...WWWWW",
+    "...W....",
+    "...W....",
+    "...W....",
+    "...W....",
+])
+UI_TR = rows_from_strings([
+    "........",
+    "........",
+    "........",
+    "WWWWW...",
+    "....W...",
+    "....W...",
+    "....W...",
+    "....W...",
+])
+UI_BL = rows_from_strings([
+    "...W....",
+    "...W....",
+    "...W....",
+    "...WWWWW",
+    "........",
+    "........",
+    "........",
+    "........",
+])
+UI_BR = rows_from_strings([
+    "....W...",
+    "....W...",
+    "....W...",
+    "WWWWW...",
+    "........",
+    "........",
     "........",
     "........",
 ])
@@ -422,6 +616,29 @@ for _pattern in (ESPADA_16, BASTO_16, ORO_16, COPA_16):
 TILES.append(blank_grid("W"))  # TILE_WHITE
 
 TILES.append(letter_tile("."))  # TILE_LETTER_DOT: para "CODE.AR" en la pantalla de titulo
+
+# Digitos de la INTERFAZ (fondo transparente, blancos con sombra): marcador,
+# opciones del titulo, "VALE n". Los big_digit_tile() de arriba (fondo blanco)
+# se siguen usando solo para el numero impreso en la cara de una carta.
+for _d in "0123456789":
+    TILES.append(hud_digit_tile(_d))  # TILE_HUD_DIGIT_BASE + d
+
+TILES.extend(split_quadrants(CARD_BACK_16))  # TILE_BACK_BASE: TL,TR,BL,BR
+
+TILES.append(letter_tile("M"))   # TILE_LETTER_M ("MANO")
+TILES.append(MARK_DOWN)          # TILE_MARK_PLAYER
+TILES.append(MARK_UP)            # TILE_MARK_CPU
+TILES.append(MARK_TIE)           # TILE_MARK_TIE
+TILES.append(CURSOR_WIDE_L)      # TILE_CURSOR_WIDE_L
+TILES.append(CURSOR_WIDE_R)      # TILE_CURSOR_WIDE_R
+TILES.append(ARROW_RIGHT)        # TILE_ARROW_RIGHT
+TILES.append(UI_H)               # TILE_UI_H
+TILES.append(UI_VL)              # TILE_UI_VL
+TILES.append(UI_VR)              # TILE_UI_VR
+TILES.append(UI_TL)              # TILE_UI_TL
+TILES.append(UI_TR)              # TILE_UI_TR
+TILES.append(UI_BL)              # TILE_UI_BL
+TILES.append(UI_BR)              # TILE_UI_BR
 
 COLOR_INDEX = {".": 0, "W": 1, "B": 2, "R": 3}
 

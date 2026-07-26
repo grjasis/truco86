@@ -47,11 +47,15 @@
    ppu_set_palette_block()). El indice 0 (verde paño) es el color
    "universal de fondo" del hardware: las 4 paletas de fondo comparten
    fisicamente esa entrada ($3F00 se refleja en $3F04/$3F08/$3F0C), asi que
-   tiene que ser el mismo valor en las 4. */
+   tiene que ser el mismo valor en las 4. Lo mismo con el color 2 (negro): es
+   el que usan el numero de la carta y su marco, y como el bloque de atributos
+   que colorea el palo tambien los alcanza, tiene que quedar negro en las 4
+   para que el numero se lea igual sea cual sea el palo. El unico color que
+   cambia entre paletas es el 3, la tinta del palo. */
 static const unsigned char palette[32] = {
     0x1A, 0x30, 0x0F, 0x16,   /* PALETTE_DEFAULT: verde paño / blanco / negro / rojo (texto, bordes, dorso, copa) */
-    0x1A, 0x30, 0x11, 0x11,   /* PALETTE_ESPADA: azul */
-    0x1A, 0x30, 0x2A, 0x2A,   /* PALETTE_BASTO: verde (mas vivo que el paño) */
+    0x1A, 0x30, 0x0F, 0x11,   /* PALETTE_ESPADA: azul */
+    0x1A, 0x30, 0x0F, 0x2A,   /* PALETTE_BASTO: verde (mas vivo que el paño) */
     0x1A, 0x30, 0x0F, 0x28,   /* PALETTE_ORO: amarillo */
     0x1A, 0x30, 0x0F, 0x16,   /* sprites (sin usar todavia) */
     0x1A, 0x30, 0x0F, 0x16,
@@ -63,8 +67,16 @@ static const unsigned char palette[32] = {
    del marco: cada carta ocupa col/col+1). Las cartas son verticales
    (numero arriba, palo abajo, 2 tiles de ancho + marco), asi que con
    separar cada slot 8 columnas alcanza de sobra para el marco (4 tiles de
-   ancho) sin que se toquen entre si. */
-static const unsigned char HAND_COL[3] = { 4, 12, 20 };
+   ancho) sin que se toquen entre si.
+
+   Las columnas tienen que ser PARES: draw_card_face() elige la paleta del
+   palo con ppu_set_palette_block(), y la tabla de atributos de la PPU agrupa
+   de a 2x2 tiles alineados a columnas pares — si la carta arrancara en una
+   columna impar, sus 2 columnas caerian en bloques distintos y solo se
+   pintaria de color la mitad del palo. 6/14/22 es el juego de columnas pares
+   que deja la fila de cartas mas centrada (ocupa las columnas 5 a 24 de 32
+   contando los marcos). */
+static const unsigned char HAND_COL[3] = { 6, 14, 22 };
 
 /* --- Layout de pantalla (32 columnas x 30 filas) ---
    Cada carta boca arriba ocupa 2 tiles de ancho x 3 de alto de contenido
@@ -72,16 +84,31 @@ static const unsigned char HAND_COL[3] = { 4, 12, 20 };
    marco (1 fila arriba, 1 fila abajo, 1 columna a cada lado) = 4 columnas
    x 5 filas en total; ver draw_card_face()/draw_card_border() en
    cards_render.c. Las cartas boca abajo (dorso, mano de la CPU) son mas
-   chicas (2x2, sin marco: no hace falta mostrar numero/palo tapado). */
+   chicas (2x2, sin marco: no hace falta mostrar numero/palo tapado).
+
+   Barra de estado (filas 1 y 2) --- Fila 1: marcador de los dos, y en el medio cuanto vale la mano
+   ("VALE n", que sube con truco/retruco/vale cuatro). Fila 2: una linea
+   separadora de punta a punta que separa la barra de la mesa, con la palabra
+   "MANO" incrustada del lado del que es mano esta mano. */
 #define SCORE_ROW           1 /* fila 0 cae en el overscan, no se ve en TVs/la mayoria de emuladores */
 #define SCORE_VOS_LABEL_COL 2
 #define SCORE_VOS_NUM_COL   6
 #define SCORE_CPU_LABEL_COL 21
 #define SCORE_CPU_NUM_COL   25
+#define STAKE_COL           13 /* "VALE" */
+#define STAKE_DIGIT_COL     18 /* el numero (1..4), siempre de un solo digito */
 
-#define CPU_LABEL_ROW 2
-#define CPU_LABEL_COL 14
-#define CPU_ROW       3   /* mano de la CPU (dorso 2x2, sin marco), se va vaciando */
+#define RULE_ROW      2
+#define RULE_COL      1
+#define RULE_LEN      30
+#define MANO_VOS_COL  2  /* "MANO" incrustado en la linea, alineado con "VOS" */
+#define MANO_CPU_COL 21  /* idem, alineado con "CPU" */
+
+/* Mano de la CPU (dorsos de 2x2, sin marco), se va vaciando. No lleva
+   etiqueta "CPU" al lado: ya esta en la barra de estado, y tres palabras
+   apiladas contra el margen izquierdo (VOS / MANO / CPU) amontonaban esa
+   esquina. */
+#define CPU_ROW       3
 
 /* Cartas ya jugadas, una columna por baza (misma columna que HAND_COL, asi
    se puede comparar de un vistazo que carta gano cada baza): fila de la
@@ -89,6 +116,21 @@ static const unsigned char HAND_COL[3] = { 4, 12, 20 };
    Quedan visibles toda la mano (no se borran hasta la proxima). */
 #define CPU_PLAYED_ROW    6  /* marco: fila 5 y 9 */
 #define PLAYER_PLAYED_ROW 11 /* marco: fila 10 y 14 */
+
+/* Marca de quien gano cada baza (triangulo hacia el ganador, "=" si fue
+   parda), en el margen que queda a la izquierda de cada columna de baza y a
+   la altura donde se tocan la carta de la CPU y la del jugador. Asi se ve de
+   un vistazo como va la mano (1-0, 1-1, ...) sin depender del flash de color,
+   que pasa y no queda. */
+#define MARK_ROW      10
+#define MARK_COL_OFF   3 /* columnas a la izquierda de HAND_COL[baza] */
+
+/* Linea de mesa: una raya punteada en MARK_ROW que separa la mitad de la CPU
+   de la del jugador, dibujada solo en los huecos que dejan las 3 columnas de
+   cartas (las cartas del jugador ocupan ahi su fila de marco). Ademas de
+   ordenar la pantalla, llena el vacio verde que queda al principio de la mano
+   cuando todavia no se jugo ninguna carta. Cada tramo es {columna, largo}. */
+static const unsigned char TABLE_LINE[4][2] = { {1,4}, {9,4}, {17,4}, {25,6} };
 
 /* El mensaje "CPU: ..." usa la fila 15; el menu de respuesta a un canto
    pendiente (truco_ui.c) y el de envido/flor (canto_ui.c) las filas
@@ -105,22 +147,40 @@ static const unsigned char HAND_COL[3] = { 4, 12, 20 };
 #define PLAYER_ROW    24 /* marco: fila 23 y 27 */
 #define CURSOR_ROW    28 /* ultima fila visible (la 29 cae en el overscan, igual que la 0) */
 
-#define RESULT_ROW 24
-#define RESULT_COL 12
+/* Pantalla final: todo adentro de un marco centrado. */
+#define RESULT_FRAME_COL  6
+#define RESULT_FRAME_ROW  9
+#define RESULT_FRAME_W   20
+#define RESULT_FRAME_H   11
+#define RESULT_ROW       12
+#define RESULT_COL       12 /* "GANASTE" (7) queda centrado; "PERDISTE" (8) se dibuja una columna a la izquierda */
+#define RESULT_SCORE_ROW 16
+#define RESULT_VOS_COL    9 /* "VOS nn" + "CPU nn" quedan centrados en el marco (columnas 6..25) */
+#define RESULT_CPU_COL   17
 
-#define TITLE_ROW      10
+#define TITLE_FRAME_COL  3
+#define TITLE_FRAME_ROW  3
+#define TITLE_FRAME_W   26
+#define TITLE_FRAME_H   22
+
+#define TITLE_ROW      6
 #define TITLE_COL      12
 #define TITLE_CREDIT_ROW 13
 #define TITLE_CREDIT_COL 12
-#define TITLE_SUITS_ROW  16
-#define TITLE_SUITS_COL  13
+/* Los 4 palos GRANDES (16x16 = 2x2 tiles cada uno) como adorno. Columnas
+   pares por la misma razon que HAND_COL: cada palo se pinta de su color con
+   ppu_set_palette_block(). */
+#define TITLE_SUITS_ROW  9
+#define TITLE_SUITS_COL  10
+#define TITLE_SUITS_STEP  4
 
 /* Menu de la pantalla de titulo: elegir con/sin flor y a 15 o 30 puntos
    (ver title_screen()), mismo patron de cursor que los demas menus del
    juego (MENU_CURSOR_COL/columna de texto separadas). */
 #define TITLE_MENU_CURSOR_COL 7
 #define TITLE_MENU_COL         9
-#define TITLE_MENU_ROW        19
+#define TITLE_MENU_ROW        16
+#define TITLE_MENU_STEP        2 /* una fila vacia entre opciones: pegadas se leian apelmazadas */
 #define NUM_START_OPTIONS      4
 
 #define BACKDROP_NEUTRAL 0x1A /* verde pano */
@@ -195,13 +255,65 @@ static void draw_scoreboard(void)
     draw_number(SCORE_CPU_NUM_COL, SCORE_ROW, score_cpu);
 }
 
-/* Redibuja el marcador con el render prendido (justo despues de un
-   wait_vblank(), como toda escritura de VRAM durante el juego). */
+/* Cuanto vale la mano ahora mismo (1 sin truco, 2/3/4 con truco/retruco/vale
+   cuatro), en el medio de la barra: es el dato que mas cambia la decision de
+   jugar y antes no se mostraba en ningun lado. */
+static void draw_stake(void)
+{
+    draw_text(STAKE_COL, SCORE_ROW, "VALE");
+    ppu_set_tile(STAKE_DIGIT_COL, SCORE_ROW, digit_tile(truco_hand_value(&truco_chain)));
+}
+
+/* Linea separadora entre la barra y la mesa, con "MANO" incrustado del lado
+   del que es mano esta mano (rota cada mano, ver main()). */
+static void draw_mano_rule(void)
+{
+    unsigned char col = (unsigned char)((hand_mano == TRICK_PLAYER) ? MANO_VOS_COL : MANO_CPU_COL);
+    draw_rule(RULE_COL, RULE_ROW, RULE_LEN);
+    ppu_set_tile((unsigned char)(col - 1), RULE_ROW, TILE_BLANK);
+    draw_text(col, RULE_ROW, "MANO");
+    ppu_set_tile((unsigned char)(col + 4), RULE_ROW, TILE_BLANK);
+}
+
+/* Redibuja solo los dos numeros del marcador con el render prendido (justo
+   despues de un wait_vblank(), como toda escritura de VRAM durante el juego).
+   Son 4 tiles: entra de sobra en una ventana de vblank. El resto de la barra
+   (etiquetas, linea, "MANO") se dibuja una sola vez por mano en deal_hand(),
+   con el render apagado. */
 static void refresh_scoreboard(void)
 {
     wait_vblank();
-    draw_scoreboard();
+    draw_number(SCORE_VOS_NUM_COL, SCORE_ROW, score_player);
+    draw_number(SCORE_CPU_NUM_COL, SCORE_ROW, score_cpu);
     ppu_finish_vram_update(0x80);
+}
+
+/* Idem para el "VALE n", despues de que una negociacion de truco cambie lo
+   que vale la mano. */
+static void refresh_stake(void)
+{
+    wait_vblank();
+    ppu_set_tile(STAKE_DIGIT_COL, SCORE_ROW, digit_tile(truco_hand_value(&truco_chain)));
+    ppu_finish_vram_update(0x80);
+}
+
+/* Marca el resultado de una baza ya jugada en el margen de su columna. */
+static void draw_trick_mark(unsigned char trick, unsigned char result)
+{
+    unsigned char tile = (result == TRICK_PLAYER) ? TILE_MARK_PLAYER
+                       : (result == TRICK_CPU)    ? TILE_MARK_CPU
+                                                  : TILE_MARK_TIE;
+    wait_vblank();
+    ppu_set_tile((unsigned char)(HAND_COL[trick] - MARK_COL_OFF), MARK_ROW, tile);
+    ppu_finish_vram_update(0x80);
+}
+
+/* Puntero ancho (2 tiles) debajo de la carta 'idx' de la mano del jugador. */
+static void set_card_cursor(unsigned char idx, unsigned char show)
+{
+    unsigned char col = HAND_COL[idx];
+    ppu_set_tile(col, CURSOR_ROW, show ? TILE_CURSOR_WIDE_L : TILE_BLANK);
+    ppu_set_tile((unsigned char)(col + 1), CURSOR_ROW, show ? TILE_CURSOR_WIDE_R : TILE_BLANK);
 }
 
 static void apply_points(signed char delta)
@@ -252,9 +364,6 @@ static void deal_hand(void)
     ppu_clear_nametable0();
     ppu_clear_oam();
 
-    draw_scoreboard();
-    draw_text(CPU_LABEL_COL, CPU_LABEL_ROW, "CPU");
-
     /* semilla distinta cada mano: se mezcla con nes_frame_count (cuanto
        tardo el jugador en decidir la mano anterior), asi no se repite
        siempre el mismo reparto. */
@@ -264,6 +373,16 @@ static void deal_hand(void)
     truco_chain.step = TRUCO_STEP_NONE;
     truco_last_singer = TRUCO_SINGER_NONE;
     player_cursor = 0;
+
+    /* barra de estado completa (marcador + "VALE n" + linea con "MANO"):
+       se dibuja entera una sola vez por mano, aca, con el render apagado.
+       draw_stake() necesita truco_chain ya reseteado. */
+    draw_scoreboard();
+    draw_stake();
+    draw_mano_rule();
+    for (i = 0; i < 4; ++i) {
+        draw_rule(TABLE_LINE[i][0], MARK_ROW, TABLE_LINE[i][1]);
+    }
 
     for (i = 0; i < 3; ++i) {
         player_hand[i] = deck[i];
@@ -376,6 +495,7 @@ static unsigned char cpu_try_cantar(unsigned char *offer_envido, unsigned char *
                                                            &truco_last_singer, offer_envido, player_hand, cpu_hand,
                                                            award_points_and_flash, falta_target(),
                                                            (unsigned char)(hand_mano == TRICK_PLAYER));
+            refresh_stake(); /* el truco aceptado cambio cuanto vale la mano */
             /* una vez que se negocia un canto de truco (aceptado, o la
                mano termina), el envido ya no se puede cantar mas, se haya
                usado o no la interrupcion de arriba (ver truco_ui.h). */
@@ -451,7 +571,7 @@ static unsigned char play_trick(unsigned char trick, unsigned char offer_envido,
 
     draw_canto_menu(canto_kind, canto_code, canto_count, 1);
     wait_vblank();
-    ppu_set_tile(HAND_COL[player_cursor], CURSOR_ROW, TILE_CURSOR);
+    set_card_cursor(player_cursor, 1);
     ppu_finish_vram_update(0x80);
 
     for (;;) {
@@ -461,22 +581,22 @@ static unsigned char play_trick(unsigned char trick, unsigned char offer_envido,
 
         if (!in_menu) {
             if (pressed & JOY_LEFT_MASK) {
-                ppu_set_tile(HAND_COL[player_cursor], CURSOR_ROW, TILE_BLANK);
+                set_card_cursor(player_cursor, 0);
                 player_cursor = find_unplayed(player_played, player_cursor, -1);
-                ppu_set_tile(HAND_COL[player_cursor], CURSOR_ROW, TILE_CURSOR);
+                set_card_cursor(player_cursor, 1);
                 ppu_finish_vram_update(0x80);
                 sound_play(SFX_MOVE);
             } else if (pressed & JOY_RIGHT_MASK) {
-                ppu_set_tile(HAND_COL[player_cursor], CURSOR_ROW, TILE_BLANK);
+                set_card_cursor(player_cursor, 0);
                 player_cursor = find_unplayed(player_played, player_cursor, 1);
-                ppu_set_tile(HAND_COL[player_cursor], CURSOR_ROW, TILE_CURSOR);
+                set_card_cursor(player_cursor, 1);
                 ppu_finish_vram_update(0x80);
                 sound_play(SFX_MOVE);
             } else if ((pressed & JOY_UP_MASK) && canto_count > 0) {
                 in_menu = 1;
                 menu_sel = 0;
-                ppu_set_tile(HAND_COL[player_cursor], CURSOR_ROW, TILE_BLANK);
-                ppu_set_tile(MENU_CURSOR_COL, TRUCO_MENU_BASE_ROW, TILE_CURSOR);
+                set_card_cursor(player_cursor, 0);
+                ppu_set_tile(MENU_CURSOR_COL, TRUCO_MENU_BASE_ROW, TILE_ARROW_RIGHT);
                 ppu_finish_vram_update(0x80);
                 sound_play(SFX_MOVE);
             } else if (pressed & JOY_BTN_A_MASK) {
@@ -488,11 +608,11 @@ static unsigned char play_trick(unsigned char trick, unsigned char offer_envido,
                 if (menu_sel == 0) {
                     in_menu = 0;
                     ppu_set_tile(MENU_CURSOR_COL, TRUCO_MENU_BASE_ROW, TILE_BLANK);
-                    ppu_set_tile(HAND_COL[player_cursor], CURSOR_ROW, TILE_CURSOR);
+                    set_card_cursor(player_cursor, 1);
                 } else {
                     ppu_set_tile(MENU_CURSOR_COL, (unsigned char)(TRUCO_MENU_BASE_ROW - menu_sel), TILE_BLANK);
                     --menu_sel;
-                    ppu_set_tile(MENU_CURSOR_COL, (unsigned char)(TRUCO_MENU_BASE_ROW - menu_sel), TILE_CURSOR);
+                    ppu_set_tile(MENU_CURSOR_COL, (unsigned char)(TRUCO_MENU_BASE_ROW - menu_sel), TILE_ARROW_RIGHT);
                 }
                 ppu_finish_vram_update(0x80);
                 sound_play(SFX_MOVE);
@@ -500,7 +620,7 @@ static unsigned char play_trick(unsigned char trick, unsigned char offer_envido,
                 if (menu_sel < (unsigned char)(canto_count - 1)) {
                     ppu_set_tile(MENU_CURSOR_COL, (unsigned char)(TRUCO_MENU_BASE_ROW - menu_sel), TILE_BLANK);
                     ++menu_sel;
-                    ppu_set_tile(MENU_CURSOR_COL, (unsigned char)(TRUCO_MENU_BASE_ROW - menu_sel), TILE_CURSOR);
+                    ppu_set_tile(MENU_CURSOR_COL, (unsigned char)(TRUCO_MENU_BASE_ROW - menu_sel), TILE_ARROW_RIGHT);
                     ppu_finish_vram_update(0x80);
                     sound_play(SFX_MOVE);
                 }
@@ -518,6 +638,7 @@ static unsigned char play_trick(unsigned char trick, unsigned char offer_envido,
                                                             &truco_last_singer, &offer_envido, player_hand, cpu_hand,
                                                             award_points_and_flash, falta_target(),
                                                             (unsigned char)(hand_mano == TRICK_PLAYER));
+                    refresh_stake(); /* el truco aceptado cambio cuanto vale la mano */
                     /* una vez que se negocia un canto de truco (aceptado,
                        o la mano termina), el envido ya no se puede cantar
                        mas (ver truco_ui.h). */
@@ -546,7 +667,7 @@ static unsigned char play_trick(unsigned char trick, unsigned char offer_envido,
                 menu_sel = 0;
                 draw_canto_menu(canto_kind, canto_code, canto_count, 1);
                 wait_vblank();
-                ppu_set_tile(HAND_COL[player_cursor], CURSOR_ROW, TILE_CURSOR);
+                set_card_cursor(player_cursor, 1);
                 ppu_finish_vram_update(0x80);
             }
         }
@@ -564,7 +685,7 @@ static unsigned char play_trick(unsigned char trick, unsigned char offer_envido,
        se puede comparar de un vistazo que carta gano cada baza (en vez de
        una "mesa" compartida que se borraba entre bazas). */
     PPU.mask = 0x00;
-    ppu_set_tile(HAND_COL[player_cursor], CURSOR_ROW, TILE_BLANK);
+    set_card_cursor(player_cursor, 0);
 
     player_card = player_hand[player_cursor];
     player_played[player_cursor] = 1;
@@ -658,6 +779,7 @@ static signed char play_hand(void)
         unsigned char r = play_trick(trick, (unsigned char)(trick == 0 && offer_envido), leader, &hand_ended, &early_points);
         if (!hand_ended) {
             results[trick] = r;
+            draw_trick_mark(trick, r);
             /* el que gana la baza tira primero la siguiente; si fue
                parda, sigue abriendo el mismo (ver REGLAS.md). */
             if (r != TRICK_TIE) leader = r;
@@ -735,21 +857,36 @@ static void title_screen(void)
     PPU.mask = 0x00;
     ppu_clear_nametable0();
 
+    draw_frame(TITLE_FRAME_COL, TITLE_FRAME_ROW, TITLE_FRAME_W, TITLE_FRAME_H);
+
     draw_text(TITLE_COL, TITLE_ROW, "TRUCO");
     ppu_set_tile((unsigned char)(TITLE_COL + 5), TITLE_ROW, digit_tile(8));
     ppu_set_tile((unsigned char)(TITLE_COL + 6), TITLE_ROW, digit_tile(6));
 
     draw_text(TITLE_CREDIT_COL, TITLE_CREDIT_ROW, "CODE.AR");
 
-    ppu_set_tile(TITLE_SUITS_COL, TITLE_SUITS_ROW, TILE_SUIT_ESPADA);
-    ppu_set_tile((unsigned char)(TITLE_SUITS_COL + 2), TITLE_SUITS_ROW, TILE_SUIT_BASTO);
-    ppu_set_tile((unsigned char)(TITLE_SUITS_COL + 4), TITLE_SUITS_ROW, TILE_SUIT_ORO);
-    ppu_set_tile((unsigned char)(TITLE_SUITS_COL + 6), TITLE_SUITS_ROW, TILE_SUIT_COPA);
+    /* Los 4 palos GRANDES (16x16), cada uno de su color: es el mismo dibujo
+       que despues se ve en las cartas, asi que la pantalla de inicio ya
+       "ensena" que forma y que color tiene cada palo. */
+    for (i = 0; i < 4; ++i) {
+        unsigned char col = (unsigned char)(TITLE_SUITS_COL + i * TITLE_SUITS_STEP);
+        unsigned char base = (unsigned char)(TILE_SUIT_BIG_BASE + i * 4);
+        unsigned char pal = (i == 0) ? PALETTE_ESPADA
+                          : (i == 1) ? PALETTE_BASTO
+                          : (i == 2) ? PALETTE_ORO
+                                     : PALETTE_DEFAULT; /* copa: ya es roja en la paleta 0 */
+        ppu_set_tile(col, TITLE_SUITS_ROW, base);
+        ppu_set_tile((unsigned char)(col + 1), TITLE_SUITS_ROW, (unsigned char)(base + 1));
+        ppu_set_tile(col, (unsigned char)(TITLE_SUITS_ROW + 1), (unsigned char)(base + 2));
+        ppu_set_tile((unsigned char)(col + 1), (unsigned char)(TITLE_SUITS_ROW + 1), (unsigned char)(base + 3));
+        ppu_set_palette_block(col, TITLE_SUITS_ROW, pal);
+        ppu_set_palette_block(col, (unsigned char)(TITLE_SUITS_ROW + 1), pal);
+    }
 
     for (i = 0; i < NUM_START_OPTIONS; ++i) {
-        draw_start_option((unsigned char)(TITLE_MENU_ROW + i), START_FLOR[i], START_SCORE[i]);
+        draw_start_option((unsigned char)(TITLE_MENU_ROW + i * TITLE_MENU_STEP), START_FLOR[i], START_SCORE[i]);
     }
-    ppu_set_tile(TITLE_MENU_CURSOR_COL, TITLE_MENU_ROW, TILE_CURSOR);
+    ppu_set_tile(TITLE_MENU_CURSOR_COL, TITLE_MENU_ROW, TILE_ARROW_RIGHT);
 
     ppu_set_backdrop(BACKDROP_NEUTRAL);
     ppu_reset_scroll();
@@ -764,16 +901,16 @@ static void title_screen(void)
         pressed = input_pressed();
 
         if (pressed & JOY_UP_MASK) {
-            ppu_set_tile(TITLE_MENU_CURSOR_COL, (unsigned char)(TITLE_MENU_ROW + sel), TILE_BLANK);
+            ppu_set_tile(TITLE_MENU_CURSOR_COL, (unsigned char)(TITLE_MENU_ROW + sel * TITLE_MENU_STEP), TILE_BLANK);
             sel = (sel == 0) ? (unsigned char)(NUM_START_OPTIONS - 1) : (unsigned char)(sel - 1);
-            ppu_set_tile(TITLE_MENU_CURSOR_COL, (unsigned char)(TITLE_MENU_ROW + sel), TILE_CURSOR);
+            ppu_set_tile(TITLE_MENU_CURSOR_COL, (unsigned char)(TITLE_MENU_ROW + sel * TITLE_MENU_STEP), TILE_ARROW_RIGHT);
             ppu_finish_vram_update(0x80);
             sound_play(SFX_MOVE);
         } else if (pressed & JOY_DOWN_MASK) {
-            ppu_set_tile(TITLE_MENU_CURSOR_COL, (unsigned char)(TITLE_MENU_ROW + sel), TILE_BLANK);
+            ppu_set_tile(TITLE_MENU_CURSOR_COL, (unsigned char)(TITLE_MENU_ROW + sel * TITLE_MENU_STEP), TILE_BLANK);
             sel = (unsigned char)(sel + 1);
             if (sel >= NUM_START_OPTIONS) sel = 0;
-            ppu_set_tile(TITLE_MENU_CURSOR_COL, (unsigned char)(TITLE_MENU_ROW + sel), TILE_CURSOR);
+            ppu_set_tile(TITLE_MENU_CURSOR_COL, (unsigned char)(TITLE_MENU_ROW + sel * TITLE_MENU_STEP), TILE_ARROW_RIGHT);
             ppu_finish_vram_update(0x80);
             sound_play(SFX_MOVE);
         } else if (pressed & (JOY_START_MASK | JOY_BTN_A_MASK)) {
@@ -818,12 +955,24 @@ void main(void)
            sincronizar nada con el vblank). Se queda esperando Start/A
            para volver a la pantalla de inicio (antes se quedaba
            trabada ahi para siempre). */
-        PPU.mask = 0x00;
-        ppu_clear_nametable0();
-        draw_scoreboard();
-        draw_text(CPU_LABEL_COL, CPU_LABEL_ROW, "CPU");
-        draw_text(RESULT_COL, RESULT_ROW, (score_player >= target_score) ? "GANASTE" : "PERDISTE");
-        ppu_set_backdrop((score_player >= target_score) ? BACKDROP_WIN : BACKDROP_LOSE);
+        {
+            unsigned char won = (unsigned char)(score_player >= target_score);
+            PPU.mask = 0x00;
+            ppu_clear_nametable0();
+            draw_frame(RESULT_FRAME_COL, RESULT_FRAME_ROW, RESULT_FRAME_W, RESULT_FRAME_H);
+            if (won) {
+                draw_text(RESULT_COL, RESULT_ROW, "GANASTE");
+            } else {
+                draw_text((unsigned char)(RESULT_COL - 1), RESULT_ROW, "PERDISTE");
+            }
+            /* marcador final adentro del marco, para cerrar la partida con el
+               resultado a la vista y no solo con la palabra. */
+            draw_text(RESULT_VOS_COL, RESULT_SCORE_ROW, "VOS");
+            draw_number((unsigned char)(RESULT_VOS_COL + 4), RESULT_SCORE_ROW, score_player);
+            draw_text(RESULT_CPU_COL, RESULT_SCORE_ROW, "CPU");
+            draw_number((unsigned char)(RESULT_CPU_COL + 4), RESULT_SCORE_ROW, score_cpu);
+            ppu_set_backdrop(won ? BACKDROP_WIN : BACKDROP_LOSE);
+        }
         ppu_reset_scroll();
         PPU.control = 0x80;
         PPU.mask = 0x1E;

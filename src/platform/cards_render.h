@@ -54,6 +54,41 @@
 #define TILE_WHITE          61 /* blanco SOLIDO (a diferencia de TILE_BLANK, que es transparente/color de fondo del pano) */
 #define TILE_LETTER_DOT     62 /* "." para "CODE.AR" en la pantalla de titulo */
 
+/* Digitos de la INTERFAZ (blancos con sombra, fondo transparente): marcador,
+ * menu del titulo, "VALE n". TILE_HUD_DIGIT_BASE + d, d = 0..9. Distintos de
+ * los TILE_RANK_x y TILE_DIGIT_x de arriba, que tienen fondo blanco porque van impresos sobre
+ * la cara de una carta. */
+#define TILE_HUD_DIGIT_BASE 63
+
+/* Dorso de carta (16x16 = 4 tiles: TL/TR/BL/BR consecutivos), para la mano
+ * tapada de la CPU. Ver draw_card_back(). */
+#define TILE_BACK_BASE      73
+
+#define TILE_LETTER_M       77 /* "MANO" */
+
+/* Marca del resultado de una baza, al costado de su columna (ver
+ * draw_trick_mark() en main.c). */
+#define TILE_MARK_PLAYER    78 /* triangulo hacia abajo: la gano el jugador */
+#define TILE_MARK_CPU       79 /* triangulo hacia arriba: la gano la CPU */
+#define TILE_MARK_TIE       80 /* "=": parda */
+
+/* Puntero ancho (2 tiles) que marca la carta elegida, y flecha del cursor de
+ * los menus. TILE_CURSOR (el de 8x8) queda solo por compatibilidad. */
+#define TILE_CURSOR_WIDE_L  81
+#define TILE_CURSOR_WIDE_R  82
+#define TILE_ARROW_RIGHT    83
+
+/* Marco fino BLANCO sobre el paño (distinto de TILE_BORDER_*, que es el marco
+ * negro sobre blanco de una carta): encuadra la pantalla de titulo y la de
+ * resultado. Ver draw_frame() en text.h. */
+#define TILE_UI_H           84
+#define TILE_UI_VL          85
+#define TILE_UI_VR          86
+#define TILE_UI_TL          87
+#define TILE_UI_TR          88
+#define TILE_UI_BL          89
+#define TILE_UI_BR          90
+
 /* Paletas de fondo (ver main.c, palette[]) para pintar cada palo de un
  * color distinto (espada=azul, basto=verde, oro=amarillo, copa=rojo, con
  * la paleta 0 que ya se usaba antes de agregar esto): asignadas por
