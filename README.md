@@ -88,4 +88,4 @@ para lo que falta (música durante las manos, IA más avanzada, etc.).
 
 ## Licencia
 
-[MIT](LICENSE) — Gustavo Riveros Jasis \<grjasis@gmail.com\>.
+[MIT](LICENSE) — Gustavo Riveros Jasis \<grjasis@code.ar\>.
